@@ -2,6 +2,7 @@ const userService = require('./userService');
 const emailService = require('./emailService');
 const stripeService = require('./stripeService');
 const logger = require('../utils/logger');
+const { getPriceIds } = require('../config/plans');
 
 class SubscriptionService {
   /**
@@ -311,16 +312,27 @@ class SubscriptionService {
    */
   determinePlanType(subscription) {
     const priceId = subscription.items.data[0]?.price?.id;
+    const plans = getPriceIds();
 
-    // Planos definidos pelo usuário
-    switch (priceId) {
-      case 'price_1RZwkZQZgpVccQF8UK7COqL3':
-        return 'profissional';
-      case 'price_1RZwkAQZgpVccQF8AGT1tiK3':
-        return 'essencial';
-      default:
-        return 'essencial';
+    logger.info('Determinando tipo de plano:', {
+      priceId,
+      environment: process.env.NODE_ENV || 'development',
+    });
+
+    if (priceId === plans.profissional) {
+      return 'profissional';
     }
+
+    if (priceId === plans.essencial) {
+      return 'essencial';
+    }
+
+    // Fallback para plano essencial
+    logger.warn(
+      'Price ID não reconhecido, usando plano essencial como fallback:',
+      { priceId },
+    );
+    return 'essencial';
   }
 
   /**
